@@ -1,0 +1,32 @@
+* Rules
+  ** à chaque action nouvelle que l'on souhaite menée sur la tirelire, on doit
+  ajouter l'option dans le parseur d'argument avant d'implémenter la fonction
+  associée.
+  ** les fonction métier doivent être indépendantes de l'interface. Cette
+  dernière ne sera dans un premier temps que CLI.
+* Tasks
+  ** DONE création d'une nouvelle tirelire
+  ** DONE ajout d'un compte à une tirelire
+  ** DONE ajout d'un cochon à une tirelire
+  ** DONE afficher les montants actuels
+  ** DONE implémenter une fonction de vérification de montant à appeller avant
+  toute action
+  ** DONE affecter à une tirelire un fichier de montant automatique
+  ** DONE mettre en place la verification du fichier
+  ** DONE mettre en place l'update d'une tirelire au chargement
+  ** TODO finir la mise en place du lien entre un cochon et un compte (pour le
+  moment il n'y a pas de vérifications :\)
+  ** TODO mettre en place la distribution automatique de début de mois
+  ** TODO mettre en place la sauvegarde des transactions
+  ** TODO afficher le bilan du mois
+  ** TODO effectuer une dépense au sein d'un cochon
+  ** TODO effectuer un transfert exeptionnel vers un cochon
+  ** modifier le montant affecté à un cochon => dans le fichier, modif à la
+  main
+  ** TODO écrire la doc
+  ** TODO gérer le fais que l'on peut ne pas avoir ouvert l'application depuis
+  plus qu'1 moi et qu'il faut effectuer les virements automatiques et les
+  distributions
+  ** TODO gérer la possibilité de lancer à la main la distribution (pour le
+  début de la Tirelire)
+  ** TODO implémenter la possibilité d'ajouter une dépense à une date passée
