@@ -9,16 +9,23 @@ from compte import Compte
 from cochon import Cochon
 from distribution import verifieFichier
 
+
 class Tirelire():
-    def __init__(self, nomTirelire):
-        self.nom = nomTirelire + '.tir'
-        if exists(self.nom):
+
+    @classmethod
+    def new(name):
+        if exists(name):
             print("La tirelire existe deja, voulez-vous l'ecraser ? (o/N)")
             rep = raw_input()
             if rep.lower() != 'o':
                 print("\n")
-                exit()
-            remove(self.nom)
+                return
+            remove(name)
+        tirelire = Tirelire(name)
+        return tirelire
+
+    def __init__(self, nomTirelire):
+        self.nom = nomTirelire + '.tir'
         self.dateCreation = datetime.now()
         self.dateModification = datetime.now()
         self.fichiers = []
@@ -29,48 +36,47 @@ class Tirelire():
 
     def ajouteFichier(self, fichier):
         if not exists(fichier):
-            print("Le fichier %s n'existe pas.\n" % fichier)
-            exit()
+            return 1, "Le fichier %s n'existe pas." % fichier
         verifieFichier(self, fichier)
         self.fichiers.append(fichier)
+        return 0, "Le fichier %s a ete ajoute." % fichier
 
     def ajouteCompte(self, nomCompte, typeCompte):
         if nomCompte in self.comptes:
-            print("Le compte existe deja\n")
-            exit()
+            return 1, "Le compte %s existe deja." % nomCompte
         self.comptes[nomCompte] = Compte(nomCompte, typeCompte)
+        return 0, "Le compte %s a ete cree." % nomCompte
 
     def depotCompte(self, nomCompte, montant):
         if nomCompte not in self.comptes:
-            print("Le compte n'existe pas\n")
-            exit()
+            return 1, "Le compte %s n'existe pas." % nomCompte
         self.comptes[nomCompte].depose(montant)
+        return 0, "Le montant %s a ete depose sur le compte %s." % \
+            (montant, nomCompte)
 
     def ajouteCochon(self, nomCochon, typeCochon):
         if nomCochon in self.cochons:
-            print("Le cochon existe deja\n")
-            exit()
+            return 1, "Le cochon %s existe deja." % nomCochon
         self.cochons[nomCochon] = Cochon(nomCochon, typeCochon)
+        return 0, "Le cochon %s a ete cree." % nomCochon
 
     def depotCochon(self, nomCochon, montant):
         if nomCochon not in self.cochons:
-            print("Le cochon n'existe pas\n")
-            exit()
-        if self.cochons[nomCochon].infoType is not "fourmis":
-            print("Seule une fourmis peut apporter de l'argent !\n")
-            print(repr(self.cochons[nomCochon]))
-            exit()
+            return 1, "Le cochon %s n'existe pas." % nomCochon
         self.cochons[nomCochon].depose(montant)
+        return 0, "Le montant %s a ete depose sur le cochon %s." % \
+            (montant, nomCochon)
 
     def retraitCochon(self, nomCochon, montant):
         if nomCochon not in self.cochons:
-            print("Le cochon n'existe pas\n")
+            return 1, "Le cochon %s n'existe pas." % nomCochon
             exit()
-        if self.cochons[nomCochon].infoType is not "cigale":
-            print("Seule une cigale peut depenser de l'argent !\n")
-            print(repr(self.cochons[nomCochon]))
-            exit()
+        if self.cochons[nomCochon].infoType is not "stock":
+            return 2, "Action impossible depuis ce type de cochon : %s." % \
+                self.cochons[nomCochon].infoType
         self.cochons[nomCochon].retire(montant)
+        return 0, "Le montant %s a ete retire du le cochon %s." % \
+            (montant, nomCochon)
 
     def sauve(self):
         self.dateModification = datetime.now()
@@ -78,41 +84,41 @@ class Tirelire():
         dump(self, fic)
         fic.close()
 
-    def upgrade(self):
-        reference = Tirelire("ref")
-        listeNomNouvelle = dir(reference)
-        listeTypeNouvelle = [type(getattr(reference, elem)) 
-            for elem in listeNomNouvelle]
-        listeNomAncienne = dir(self)
-        listeTypeAncienne = [type(getattr(self, elem)) 
-            for elem in listeNomAncienne]
-        if listeNomAncienne == listeNomNouvelle \
-            and listeTypeAncienne == listeTypeAncienne:
-            return
-        print("Ancienne : %s\n %s" % (listeNomAncienne, listeTypeAncienne))
-        print("Nouvelle : %s\n %s" % (listeNomNouvelle, listeTypeNouvelle))
-        for elem in listeNomAncienne:
-            if elem in listeNomNouvelle:
-                # on vérifie que le type est le même
-                if type(getattr(self, elem)) == type(getattr(reference, elem)):
-                    # si oui on retire l'eleme de la liste nouvelle
-                    listeNomNouvelle.remove(elem)
-                    print("%s est ok !" % elem)
-                else:
-                    # sinon, on retire de self et de listeAncienne
-                    listeNomAncienne.remove(elem)
-                    delattr(self, elem)
-                    print("%s n'avait pas le bon type" % elem)
-            else:
-                # on retire de self
-                delattr(self, elem)
-                print("%s est obsolette" % elem)
-        for elem in listeNomNouvelle:
-            if elem not in listeNomAncienne:
-                # on ajoute l'element dans self
-                setattr(self, elem, type(getattr(reference, elem)))
-                print("nouveau %s" % elem)
-        self.sauve()
+#    def upgrade(self):
+#        reference = Tirelire("ref")
+#        listeNomNouvelle = dir(reference)
+#        listeTypeNouvelle = [type(getattr(reference, elem)) 
+#            for elem in listeNomNouvelle]
+#        listeNomAncienne = dir(self)
+#        listeTypeAncienne = [type(getattr(self, elem)) 
+#            for elem in listeNomAncienne]
+#        if listeNomAncienne == listeNomNouvelle \
+#            and listeTypeAncienne == listeTypeAncienne:
+#            return
+#        print("Ancienne : %s\n %s" % (listeNomAncienne, listeTypeAncienne))
+#        print("Nouvelle : %s\n %s" % (listeNomNouvelle, listeTypeNouvelle))
+#        for elem in listeNomAncienne:
+#            if elem in listeNomNouvelle:
+#                # on vérifie que le type est le même
+#                if type(getattr(self, elem)) == type(getattr(reference, elem)):
+#                    # si oui on retire l'eleme de la liste nouvelle
+#                    listeNomNouvelle.remove(elem)
+#                    print("%s est ok !" % elem)
+#                else:
+#                    # sinon, on retire de self et de listeAncienne
+#                    listeNomAncienne.remove(elem)
+#                    delattr(self, elem)
+#                    print("%s n'avait pas le bon type" % elem)
+#            else:
+#                # on retire de self
+#                delattr(self, elem)
+#                print("%s est obsolette" % elem)
+#        for elem in listeNomNouvelle:
+#            if elem not in listeNomAncienne:
+#                # on ajoute l'element dans self
+#                setattr(self, elem, type(getattr(reference, elem)))
+#                print("nouveau %s" % elem)
+#        self.sauve()
 
     def debutmoi(self):
         date = datetime.now()
@@ -142,8 +148,7 @@ def chargeTirelire(nom):
     if splitext(nom)[1] != '.tir':
         nom += '.tir'
     if not exists(nom):
-        print("La tirelire %s n'existe pas.\n" % nom)
-        exit()
+        return 1, "La tirelire %s n'existe pas." % nom
     fic = open(nom, 'r')
     laTirelire = load(fic)
     fic.close()
@@ -154,3 +159,4 @@ def chargeTirelire(nom):
 
 if __name__ == "__main__":
     print("Tirelire !")
+    tirelire = Tirelire.new("example")
