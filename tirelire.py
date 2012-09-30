@@ -1,162 +1,140 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+from datetime import datetime
 from os.path import exists, splitext
 from os import remove
-from datetime import datetime
 from pickle import dump, load
-from compte import Compte
-from cochon import Cochon
-from distribution import verifieFichier
+from boite import Boite
+
+
+authorisedTransactions = {
+    "Cochon Matelas": "Cochon Depense",
+    "Cochon Matelas": "Cochon Virement",
+    "Exterieur": "Cochon Matelas",
+    "Cochon Depense": "Exterieur",
+    "Cochon Depense": "Cochon Matelas",
+    "Cochon Virement": "Cochon Matelas",
+    "Cochon Virement": "Compte Epargne",
+    "Compte Epargne": "Cochon Matelas",
+    }
 
 
 class Tirelire():
 
     @classmethod
-    def new(name):
-        if exists(name):
-            print("La tirelire existe deja, voulez-vous l'ecraser ? (o/N)")
-            rep = raw_input()
-            if rep.lower() != 'o':
-                print("\n")
-                return
-            remove(name)
-        tirelire = Tirelire(name)
-        return tirelire
+    def new(cls, name, value, **kwargs):
+        # Check the existance of a previus eponym Tirelire in the same directory
+        # before creating it.
+        if name.endswith('.tir'):
+            filename = name
+        else:
+            filename = name + '.tir'
 
-    def __init__(self, nomTirelire):
-        self.nom = nomTirelire + '.tir'
-        self.dateCreation = datetime.now()
-        self.dateModification = datetime.now()
-        self.fichiers = []
-        self.comptes = {}
-        self.cochons = {}
-        self.ajouteCochon("Cagnote", "reste")
-        self.distributions = {}
+        if exists(filename):
+            if "force" in kwargs:
+                msg = "Tirelire %s already exists! use --force to rewrite it" \
+                        % filename
+                return -1, msg
+            remove(filename)
 
-    def ajouteFichier(self, fichier):
-        if not exists(fichier):
-            return 1, "Le fichier %s n'existe pas." % fichier
-        verifieFichier(self, fichier)
-        self.fichiers.append(fichier)
-        return 0, "Le fichier %s a ete ajoute." % fichier
+        # TODO: verification of the value validity
+        return Tirelire(filename, value)
 
-    def ajouteCompte(self, nomCompte, typeCompte):
-        if nomCompte in self.comptes:
-            return 1, "Le compte %s existe deja." % nomCompte
-        self.comptes[nomCompte] = Compte(nomCompte, typeCompte)
-        return 0, "Le compte %s a ete cree." % nomCompte
 
-    def depotCompte(self, nomCompte, montant):
-        if nomCompte not in self.comptes:
-            return 1, "Le compte %s n'existe pas." % nomCompte
-        self.comptes[nomCompte].depose(montant)
-        return 0, "Le montant %s a ete depose sur le compte %s." % \
-            (montant, nomCompte)
+    def __init__(self, name, value):
+        self.ficname = name
+        self.creationdate = datetime.now()
+        self.courant = Boite("Courant", 0, "Compte Courant", self)
+        self.exterieur = Boite("Exterieur", 0, "Exterieur", self)
+        self.matelas = Boite("Matelas", value, "Cochon Matelas", self)
+        self.boxes = []
+        self.updateCourant()
 
-    def ajouteCochon(self, nomCochon, typeCochon):
-        if nomCochon in self.cochons:
-            return 1, "Le cochon %s existe deja." % nomCochon
-        self.cochons[nomCochon] = Cochon(nomCochon, typeCochon)
-        return 0, "Le cochon %s a ete cree." % nomCochon
+    def updateCourant(self):
+        self.courant.montant = self.matelas.montant
+        for elem in self.boxes:
+            if elem.info != "Epargne":
+                self.courant.montant += elem.montant
 
-    def depotCochon(self, nomCochon, montant):
-        if nomCochon not in self.cochons:
-            return 1, "Le cochon %s n'existe pas." % nomCochon
-        self.cochons[nomCochon].depose(montant)
-        return 0, "Le montant %s a ete depose sur le cochon %s." % \
-            (montant, nomCochon)
+    def addCompteEpargne(self, name, value, **kwargs):
+        #TODO: check the validity of value
+        # Add a Saving account to the Tirelire.
+        for elem in self.boxes:
+            if elem.name == name:
+                if "force" in kwargs:
+                    msg = "%s account already exists ! " \
+                        + "use --force to remove it" % name
+                    return -1, msg
+                self.removeCompteEpargne(name)
+        self.boxes.append(Boite(name, value, "Compte Epargne", self))
+        return
 
-    def retraitCochon(self, nomCochon, montant):
-        if nomCochon not in self.cochons:
-            return 1, "Le cochon %s n'existe pas." % nomCochon
-            exit()
-        if self.cochons[nomCochon].infoType is not "stock":
-            return 2, "Action impossible depuis ce type de cochon : %s." % \
-                self.cochons[nomCochon].infoType
-        self.cochons[nomCochon].retire(montant)
-        return 0, "Le montant %s a ete retire du le cochon %s." % \
-            (montant, nomCochon)
+    def addCochon(self, name, pigType, **kwargs):
+        # Add a Cochon to the Tirelire.
+        for elem in self.boxes:
+            if elem.name == name:
+                if "force" in kwargs:
+                    msg = "%s pig already exists ! " \
+                        + "use --force to remove it" % name
+                    return -1, msg
+                self.removeCochon(name)
+        self.boxes.append(Boite(name, 0, pigType, self))
+        return
 
-    def sauve(self):
-        self.dateModification = datetime.now()
-        fic = open(self.nom, 'w')
-        dump(self, fic)
-        fic.close()
+    def removeBox(self, name, **kwargs):
+        for elem in self.boxes:
+            if elem.name == name:
+                if "force" in kwargs:
+                    msg = "Emptying %s %s before destruction" \
+                            % (elem.info, elem.name)
+                    self.transaction(elem.montant, elem, self.matelas, msg)
+                    self.boxes.remove(elem)
+                    return 1, "Box %s removed with force" % elem.name
+                if elem.montant != 0:
+                    return -2, "Box %s is not empty ! use --force" \
+                        % elem.name
+                self.boxes.remove(elem)
+                return 1, "Box %s removed the soft way" % name
 
-#    def upgrade(self):
-#        reference = Tirelire("ref")
-#        listeNomNouvelle = dir(reference)
-#        listeTypeNouvelle = [type(getattr(reference, elem)) 
-#            for elem in listeNomNouvelle]
-#        listeNomAncienne = dir(self)
-#        listeTypeAncienne = [type(getattr(self, elem)) 
-#            for elem in listeNomAncienne]
-#        if listeNomAncienne == listeNomNouvelle \
-#            and listeTypeAncienne == listeTypeAncienne:
-#            return
-#        print("Ancienne : %s\n %s" % (listeNomAncienne, listeTypeAncienne))
-#        print("Nouvelle : %s\n %s" % (listeNomNouvelle, listeTypeNouvelle))
-#        for elem in listeNomAncienne:
-#            if elem in listeNomNouvelle:
-#                # on vérifie que le type est le même
-#                if type(getattr(self, elem)) == type(getattr(reference, elem)):
-#                    # si oui on retire l'eleme de la liste nouvelle
-#                    listeNomNouvelle.remove(elem)
-#                    print("%s est ok !" % elem)
-#                else:
-#                    # sinon, on retire de self et de listeAncienne
-#                    listeNomAncienne.remove(elem)
-#                    delattr(self, elem)
-#                    print("%s n'avait pas le bon type" % elem)
-#            else:
-#                # on retire de self
-#                delattr(self, elem)
-#                print("%s est obsolette" % elem)
-#        for elem in listeNomNouvelle:
-#            if elem not in listeNomAncienne:
-#                # on ajoute l'element dans self
-#                setattr(self, elem, type(getattr(reference, elem)))
-#                print("nouveau %s" % elem)
-#        self.sauve()
+    def transaction(self, value, origin, destination, comment):
+        # TODO: verification of the value validity
+        if (origin.info, destination.info) in authorisedTransactions.items():
+            origin.getMoney(value, destination, comment)
+            destination.putMoney(value, origin, comment)
 
-    def debutmoi(self):
-        date = datetime.now()
-        if date.month > self.dateModification.month:
-            # on parcourt la liste des distributions
-            for elem in self.distributions:
-                # on retranche du cochon "reste" pour déposer dans les cochons
-                self.comptes["reste"].retire(elem.montant)
-                self.cochons[elem.cochon].depose(elem.montant)
-            self.sauve()
+    def save(self):
+        tirFile = open(self.ficname, 'w')
+        dump(self, tirFile)
+        tirFile.close()
+
+    def summary(self, beginDate, **kwargs):
+        #TODO: make the date optional
+        # return all the transations since the given date.
+        return ''
 
     def __repr__(self):
-        message = "Tirelire %s cree le %s\n" % (self.nom, self.dateCreation)
-        message += "Derniere modification le %s\n" % self.dateModification
-        if len(self.comptes) != 0:
-            message += "Comptes de la tirelire :\n"
-            for elem in self.comptes.values():
-                message += repr(elem)
-        if len(self.cochons) != 0:
-            message += "Cochons de la tirelire :\n"
-            for elem in self.cochons.values():
+        # return the actual status of the Tirelire.
+        message = "Tirelire %s cree le %s\n" % (self.ficname, self.creationdate)
+        message += repr(self.courant)
+        message += repr(self.matelas)
+        for elem in self.boxes:
                 message += repr(elem)
         return message
 
 
-def chargeTirelire(nom):
-    if splitext(nom)[1] != '.tir':
-        nom += '.tir'
-    if not exists(nom):
-        return 1, "La tirelire %s n'existe pas." % nom
-    fic = open(nom, 'r')
-    laTirelire = load(fic)
-    fic.close()
-#    laTirelire.upgrade()
-    laTirelire.debutmoi()
-    return laTirelire
+def loadTirelire(name):
+    if splitext(name)[1] != '.tir':
+        name += '.tir'
+    if not exists(name):
+        return 1, "The Tirelire %s doesn't exist." % name
+    tirFile = open(name, 'r')
+    tir = load(tirFile)
+    tirFile.close()
+    return tir
 
 
 if __name__ == "__main__":
-    print("Tirelire !")
-    tirelire = Tirelire.new("example")
+    tirtest = Tirelire()
+    print(tirtest)
+
