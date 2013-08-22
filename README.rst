@@ -1,3 +1,6 @@
+OBSOLETTE
+*********
+
 L'application Tirelire
 ======================
 
