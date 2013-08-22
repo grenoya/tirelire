@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """ Gestion simplifiée d'une tirelire """
 from __future__ import print_function
@@ -34,7 +34,8 @@ class Cochons():
                                         commentaire))
         self._historiqueInterne.append((date, montant, "versement",
                                         commentaire))
-        print(msg)
+        if msg:
+            print(msg)
         return msg
 
     def ajouteCochon(self, nom, date=None):
@@ -44,7 +45,8 @@ class Cochons():
         self._montants.append(0.0)
         self._historiqueInterne.append((date, None, "creation Cochon",
                                         nom))
-        print(msg)
+        if msg:
+            print(msg)
         return msg
 
     def verseCochon(self, nom, montant, date=None):
@@ -55,7 +57,8 @@ class Cochons():
         self._cagnotte -= montant
         self._historiqueInterne.append((date, montant,
                                         "versement Cochon", nom))
-        print(msg)
+        if msg:
+            print(msg)
         return msg
 
     def depense(self, nom, montant, commentaire, date=None):
@@ -66,26 +69,25 @@ class Cochons():
         self._courant -= montant
         self._historiqueExterne.append((date, montant, "depense", commentaire))
         self._historiqueInterne.append((date, montant, "depense Cochon", nom))
-        print(msg)
+        if msg:
+            print(msg)
         return msg
 
     def etatCochons(self):
         """ affiche l'état de chaque cochon """
+        print("cagnotte: %f" % self._cagnotte)
+        print("---------")
         for elem in self._noms:
-            print("%s:\t%f" % (elem, self._montants[self._noms.index(elem)]))
-
-    def etatCagnotte(self):
-        """ affiche l'état de la cagnotte """
-        print("cagnotte:\t%f" % self._cagnotte)
+            print("%s: %f" % (elem, self._montants[self._noms.index(elem)]))
 
     def afficheHistorique(self):
         """ affiche l'historique des recettes et dépenses """
         for elem in self._historiqueExterne:
-            print("%s\t%s\t%s\t%s" % elem)
+            print("%s  %s | %s | %s" % elem)
 
     def sauve(self, nom_fichier=None):
         """ sauve la tirelire dans un fichier """
-        if not nom_fichier:
+        if nom_fichier:
             self._chemin = nom_fichier
         fic = shelve.open(self._chemin)
         fic['courant'] = self._courant
@@ -111,7 +113,7 @@ class Cochons():
 
 def gereDate(date):
     """ Renvoie la sate fournie au format datetime """
-    msg = ''
+    msg = None
     if not date:
         date = dtdate.today()
     else:
