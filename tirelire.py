@@ -1,118 +1,119 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-""" Gestion simplifiée d'une tirelire """
+""" Piggy bank application """
 from __future__ import print_function
 import shelve
 from datetime import datetime
 from datetime import date as dtdate
 
 
-class Cochons():
-    """ Tirelire """
+class Tirelire():
+    """ Piggy bank """
     def __init__(self):
-        #: montant total possédé
-        self._courant = 0.0
-        #: liste des cochons
-        self._noms = []
-        #: montant des cochons
-        self._montants = []
-        #: montant non attribué à un cochon
-        self._cagnotte = 0.0
-        #: historique des mouvements du total possédé
-        self._historiqueExterne = []
-        #: historique des mouvements internes
-        self._historiqueInterne = []
-        #: nom du fichier de sauvegarde
-        self._chemin = None
+        #: Total amount
+        self._total = 0.0
+        #: List of pigs
+        self._pig_names = []
+        #: List of pig's amounts
+        self._pig_amounts = []
+        #: Remaining amount
+        self._remaining = 0.0
+        #: History of the total amount
+        self._tirelire_history = []
+        #: Pigs' history
+        self._pigs_history = []
+        #: Name of the backup file
+        self._backup_filename = None
 
-    def ajouteCourant(self, montant, commentaire, date=None):
-        """ apport d'argent """
+    def provision(self, amount, comment, date=None):
+        """ Povide money to the Tirelire """
         date, msg = gereDate(date)
-        self._courant += montant
-        self._cagnotte += montant
-        self._historiqueExterne.append((date, montant, "versement",
-                                        commentaire))
-        self._historiqueInterne.append((date, montant, "versement",
-                                        commentaire))
+        self._total += amount
+        self._remaining += amount
+        self._tirelire_history.append((date, amount, "input",
+                                        comment))
+        self._pigs_history.append((date, amount, "input",
+                                        comment))
         if msg:
             print(msg)
         return msg
 
-    def ajouteCochon(self, nom, date=None):
-        """ création d'un cochon """
+    def createPig(self, name, date=None):
+        """ Pig creation """
         date, msg = gereDate(date)
-        self._noms.append(nom)
-        self._montants.append(0.0)
-        self._historiqueInterne.append((date, None, "creation Cochon",
-                                        nom))
+        self._pig_names.append(name)
+        self._pig_amounts.append(0.0)
+        self._pigs_history.append((date, None, "Pig creation",
+                                        name))
         if msg:
             print(msg)
         return msg
 
-    def verseCochon(self, nom, montant, date=None):
-        """ versement d'argent de la cagnotte vers un cochon """
+    def feed(self, name, amount, date=None):
+        """ Transfert money to the indicated pig """
         date, msg = gereDate(date)
-        indice = self._noms.index(nom)
-        self._montants[indice] += montant
-        self._cagnotte -= montant
-        self._historiqueInterne.append((date, montant,
-                                        "versement Cochon", nom))
+        indice = self._pig_names.index(name)
+        self._pig_amounts[indice] += amount
+        self._remaining -= amount
+        self._pigs_history.append((date, amount,
+                                        "versement Cochon", name))
         if msg:
             print(msg)
         return msg
 
-    def depense(self, nom, montant, commentaire, date=None):
-        """ depense l'argent d'un cochon """
+    def spend(self, name, amount, comment="", date=None):
+        """ Spend money from a pig """
         date, msg = gereDate(date)
-        indice = self._noms.index(nom)
-        self._montants[indice] -= montant
-        self._courant -= montant
-        self._historiqueExterne.append((date, montant, "depense", commentaire))
-        self._historiqueInterne.append((date, montant, "depense Cochon", nom))
+        indice = self._pig_names.index(name)
+        self._pig_amounts[indice] -= amount
+        self._total -= amount
+        self._tirelire_history.append((date, amount, "outgo", comment))
+        self._pigs_history.append((date, amount, "spend Cochon", name))
         if msg:
             print(msg)
         return msg
 
-    def etatCochons(self):
-        """ affiche l'état de chaque cochon """
-        print("cagnotte: %f" % self._cagnotte)
-        print("---------")
-        for elem in self._noms:
-            print("%s: %f" % (elem, self._montants[self._noms.index(elem)]))
+    def __repr__(self):
+        """ Show pigs' state """
+        msg = "Remaining: %f\n" % self._remaining
+        msg += "---------\n"
+        for elem in self._pig_names:
+            msg += "%s: %f\n" % (elem, self._pig_amounts[self._pig_names.index(elem)])
+        return msg[:-1]
 
-    def afficheHistorique(self):
-        """ affiche l'historique des recettes et dépenses """
-        for elem in self._historiqueExterne:
+    def showHistory(self):
+        """ Show total amount history """
+        for elem in self._tirelire_history:
             print("%s  %s | %s | %s" % elem)
 
-    def sauve(self, nom_fichier=None):
-        """ sauve la tirelire dans un fichier """
-        if nom_fichier:
-            self._chemin = nom_fichier
-        fic = shelve.open(self._chemin)
-        fic['courant'] = self._courant
-        fic['noms'] = self._noms
-        fic['montants'] = self._montants
-        fic['cagnotte'] = self._cagnotte
-        fic['historiqueExterne'] = self._historiqueExterne
-        fic['historiqueInterne'] = self._historiqueInterne
+    def save(self, name_fichier=None):
+        """ Save Tirelire """
+        if name_fichier:
+            self._backup_filename = name_fichier
+        fic = shelve.open(self._backup_filename)
+        fic['Total'] = self._total
+        fic['Pigs'] = self._pig_names
+        fic['Amounts'] = self._pig_amounts
+        fic['Remaining'] = self._remaining
+        fic['GlobalHistory'] = self._tirelire_history
+        fic['PigsHistory'] = self._pigs_history
         fic.close()
 
-    def charge(self, nom_fichier):
-        """ charge une tirelire depuis une sauvegarde """
-        self._chemin = nom_fichier
-        fic = shelve.open(self._chemin)
-        self._courant = fic['courant']
-        self._noms = fic['noms']
-        self._montants = fic['montants']
-        self._cagnotte = fic['cagnotte']
-        self._historiqueExterne = fic['historiqueExterne']
-        self._historiqueInterne = fic['historiqueInterne']
+    def load(self, name_fichier):
+        """ Load file """
+        self._backup_filename = name_fichier
+        fic = shelve.open(self._backup_filename)
+        self._total = fic['Total']
+        self._pig_names = fic['Pigs']
+        self._pig_amounts = fic['Amounts']
+        self._remaining = fic['Remaining']
+        self._tirelire_history = fic['GlobalHistory']
+        self._pigs_history = fic['PigsHistory']
         fic.close()
 
 
 def gereDate(date):
-    """ Renvoie la sate fournie au format datetime """
+    """ Return the date in Datetime format """
     msg = None
     if not date:
         date = dtdate.today()
