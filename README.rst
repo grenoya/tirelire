@@ -1,63 +1,70 @@
 Tirelire
 ********
 
-Creation of an instance::
-    >>> from tirelire import Cochons
-    >>> myTirelire = Cochons()
+*Tirelire* is a piggy bank software.
+You can consider your Tirelire as pig breeding: the Tirelire will be composed of
+several little pigs, one per expense field (Food, Home, Sport...).
 
-Adding a pig::
-    >>> myTirelire.ajouteCochon("First_Pig")
-    >>> myTirelire.ajouteCochon("Second one", date="2013-08-22")
-    >>> myTirelire.ajouteCochon("troisième")
+Let's create our Tirelire with those 3 pigs::
+    >>> from tirelire import Tirelire
+    >>> myTirelire = Tirelire()
+    >>> myTirelire.createPig("Food")
+    >>> myTirelire.createPig("Home")
+    >>> myTirelire.createPig("Sport")
 
-Feeding a pig::
-    >>> myTirelire.verseCochon("First_Pig", 10.)
+When earning money, you will want to provision your Tirelire and distribute it
+to your pigs (to feed them)::
+    >>> myTirelire.provision(500., "salary")
+    >>> myTirelire.feed("Home", 350.)
+    >>> myTirelire.feed("Food", 100.)
+    >>> myTirelire.feed("Sport", 25.)
 
-Let's look at the state of it::
-    >>> myTirelire.etatCochons()
-    cagnotte: -10.000000
+Amounts of money can be assign to a pig, the remaining money will automatically
+be put in a special pig called "Remaining".
+
+Let's have a look at our Tirelire::
+    >>> myTirelire
+    Remaining: 25.000000
     ---------
-    First_Pig: 10.000000
-    Second one:	0.000000
-    troisième: 0.000000
+    Food: 100.000000
+    Home: 350.000000
+    Sport: 25.000000
 
-Oops!! We transfered money but none was availlable, let's tell how much is::
-    >>> myTirelire.ajouteCourant(500., "salary", date="2013-08-21")
-    >>> myTirelire.etatCochons()
-    cagnotte: 490.000000
+When the time has come, you will pay the home rent and buy some food::
+    >>> myTirelire.spend("Home", 349., comment="Sept. rent")
+    >>> myTirelire.spend("Food", 25.)
+    >>> myTirelire
+    Remaining: 25.000000
     ---------
-    First_Pig: 10.000000
-    Second one:	0.000000
-    troisième: 0.000000
-
-Time to spend the money::
-    >>> myTirelire.depense("First_Pig", 2., "some bread")
-    >>> myTirelire.etatCochons()
-    cagnotte: 490.000000
-    ---------
-    First_Pig: 8.000000
-    Second one:	0.000000
-    troisième: 0.000000
+    Food: 75.000000
+    Home: 1.000000
+    Sport: 25.000000
 
 What about the history::
-    >>> myTirelire.afficheHistorique()
-    2013-08-21  500.0 | versement | salary
-    2013-08-22  2.0 | depense | some bread
+    >>> myTirelire.showHistory()
+    2015-08-30  500.0 | input | salary
+    2015-08-30  349.0 | outgo | Sept. rent
+    2015-08-30  25.0 | outgo | 
 
 Saving:: 
-    >>> myTirelire.sauve("myTir")
+    >>> myTirelire.save("myTir")
 
 Loading again::
-    >>> loaded_Tirelire = Cochons()
-    >>> loaded_Tirelire.charge("myTir.s")
-    >>> loaded_Tirelire.depense("First_Pig", 2., "some bread")
-    >>> loaded_Tirelire.afficheHistorique()
-    2013-08-21  500.0 | versement | salary
-    2013-08-22  2.0 | depense | some bread
-    2013-08-22  2.0 | depense | some bread
+    >>> loaded_Tirelire = Tirelire()
+    >>> loaded_Tirelire.load("myTir")
+    >>> loaded_Tirelire
+    Remaining: 25.000000
+    ---------
+    Food: 75.000000
+    Home: 1.000000
+    Sport: 25.000000
+    >>> loaded_Tirelire.showHistory()
+    2015-08-30  500.0 | input | salary
+    2015-08-30  349.0 | outgo | Sept. rent
+    2015-08-30  25.0 | outgo | 
 
 Saving under the same name::
-    >>> loaded_Tirelire.sauve()
+    >>> loaded_Tirelire.save()
 
 Or with another::
-    >>> loaded_Tirelire.sauve("myTir2")
+    >>> loaded_Tirelire.save("myTir2")
